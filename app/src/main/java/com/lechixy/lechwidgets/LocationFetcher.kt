@@ -1,0 +1,68 @@
+package com.lechixy.lechwidgets
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Looper
+import android.util.Log
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+
+class LocationFetcher(val context: Context) {
+    private val fusedLocationClient: FusedLocationProviderClient =
+        LocationServices.getFusedLocationProviderClient(context)
+    private var locationCallback: LocationCallback? = null
+
+    init {
+        createLocationCallback()
+    }
+
+    private fun createLocationCallback() {
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                if (locationResult == null) {
+                    return
+                }
+                for (location in locationResult.locations) {
+                    // Do something with the obtained location, e.g., save to a database, send to server, etc.
+                    Log.d(TAG, "onLocationResult: " + location.latitude + ", " + location.longitude)
+                }
+            }
+        }
+    }
+
+    fun startLocationUpdates() {
+        requestLocationUpdates()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestLocationUpdates() {
+        val locationRequest = LocationRequest.Builder(
+            Priority.PRIORITY_HIGH_ACCURACY, 10 * 1000
+        ).build()
+
+        fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            locationCallback!!,
+            Looper.getMainLooper()
+        )
+    }
+
+    fun stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback!!)
+    }
+
+    companion object {
+        private const val TAG = "LocationFetcher"
+    }
+}

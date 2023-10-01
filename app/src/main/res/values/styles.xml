@@ -1,0 +1,9 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Widget.LechWidgets.AppWidget.Container" parent="android:Widget">
+        <item name="android:id">@android:id/background</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:padding">?attr/appWidgetPadding</item>
+        <item name="android:clipToOutline" tools:targetApi="s">false</item>
+    </style>
+</resources>

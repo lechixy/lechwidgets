@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.LechWidgets" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#0f0f0f</item>
+    </style>
+
+    <style name="Theme.LechWidgets.AppWidgetContainerParent" parent="@android:style/Theme.DeviceDefault">
+        <!-- Radius of the outer bound of widgets to make the rounded corners -->
+        <item name="appWidgetRadius" tools:targetApi="s">
+            @android:dimen/system_app_widget_background_radius
+        </item>
+        <!--
+        Radius of the inner view's bound of widgets to make the rounded corners.
+        It needs to be 8dp or less than the value of appWidgetRadius
+        -->
+        <item name="appWidgetInnerRadius" tools:targetApi="s">
+            @android:dimen/system_app_widget_inner_radius
+        </item>
+    </style>
+
+    <style name="Theme.LechWidgets.AppWidgetContainer" parent="Theme.LechWidgets.AppWidgetContainerParent">
+        <!-- Apply padding to avoid the content of the widget colliding with the rounded corners -->
+        <item name="appWidgetPadding">6dp</item>
+    </style>
+</resources>

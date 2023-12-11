@@ -1,17 +1,21 @@
-package com.lechixy.lechwidgets
+package com.lechixy.lechwidgets.widgets.glance
 
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlarmManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.WallpaperManager
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.Icon
 import android.location.Location
 import android.media.session.MediaController
@@ -25,23 +29,28 @@ import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.toColor
+import com.chibatching.kotpref.Kotpref
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.lechixy.lechwidgets.R
+import com.lechixy.lechwidgets.common.GlanceUtil
+import com.lechixy.lechwidgets.common.Preferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.Response
 import java.text.DecimalFormat
-import java.time.Instant
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -58,9 +67,7 @@ class LechGlance : AppWidgetProvider() {
     private val handler = Handler(Looper.getMainLooper())
     private var delayedRunnable: Runnable? = null
 
-    // Battery
-    private var batteryReceiver: BatteryReceiver? = null
-
+    @OptIn(ExperimentalStdlibApi::class)
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
@@ -68,41 +75,115 @@ class LechGlance : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.lech_glance)
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val appWidgetIds = getActiveWidgetIds(context)
-        val prefs = context.getSharedPreferences("LechGlance", Context.MODE_PRIVATE)
-        val editor = prefs.edit()
+
+        // Preferences
+        Kotpref.init(context)
+
+        val event = GlanceUtil.getTodaysFirstEvent(context)
+
+        if (event != null) {
+            views.setViewVisibility(R.id.eventIcon, View.VISIBLE)
+            var coloredDrawable =
+                ContextCompat.getDrawable(context, R.drawable.m3_celebration)
+            coloredDrawable = DrawableCompat.wrap(coloredDrawable!!)
+            DrawableCompat.setTint(coloredDrawable, event.eventColor)
+            val bitmap = coloredDrawable.toBitmap()
+
+            views.setImageViewBitmap(R.id.eventIcon, bitmap)
+            views.setTextViewText(R.id.todaysEvent, event.title)
+        } else {
+            views.setViewVisibility(R.id.eventIcon, View.GONE)
+            views.setTextViewText(R.id.todaysEvent, context.getString(R.string.glance_noEvent))
+        }
+
+
+        val wallpaperManager = WallpaperManager.getInstance(context)
+        val wallpaperColors = wallpaperManager.getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
+
+        // TODO ADDING SHADOW SUPPORT
+        // TODO ADDING WALLPAPER COLOR SUPPORT
+        if (wallpaperColors != null) {
+            val isWallpaperSupportsLight = GlanceUtil.isWallpaperSupportsLight(wallpaperColors.colorHints)
+            val preferColor = GlanceUtil.getPreferColor(isWallpaperSupportsLight)
+
+            GlanceUtil.getAllTextsOnWidget().forEach {
+                if(it.textType == GlanceUtil.GlanceTextType.TITLE){
+                    views.setTextColor(it.idAtGlance, preferColor.titleColor)
+                } else {
+                    views.setTextColor(it.idAtGlance, preferColor.subtitleColor)
+                }
+            }
+
+            GlanceUtil.getAllIconsOnWidget().forEach {
+                var coloredDrawable =
+                    ContextCompat.getDrawable(context, it.iconResource) as Drawable
+                coloredDrawable = DrawableCompat.wrap(coloredDrawable)
+                DrawableCompat.setTint(coloredDrawable, preferColor.titleColor)
+                val bitmap = coloredDrawable.toBitmap()
+
+                views.setImageViewBitmap(it.idAtGlance, bitmap)
+            }
+        }
+
+//        if(Preferences.textShadows){
+//            GlanceUtil.getAllTextsOnWidget().forEach {
+//                views.setInt(it, "setShadowLayer", 0)
+//            }
+//        } else {
+//            GlanceUtil.getAllTextsOnWidget().forEach {
+//                views.setFloat(it, "", 0f)
+//            }
+//        }
+
+        appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
 
         val extras = intent.extras ?: return
 
-        if (intent.action.equals("com.lechixy.lechwidgets.UPDATE_MUSIC")) {
-            // Extract data from the bundle and update your widget views
-            // Update your app widget UI elements using RemoteViews
-            // ...
-            Log.i("Broadcast", "Received data")
-
+        if (intent.action.equals(GlanceUtil.Events.UPDATE_MUSIC)) {
             val session = extras.getParcelable(
                 NotificationCompat.EXTRA_MEDIA_SESSION,
                 MediaSession.Token::class.java
             )
-            val newSession = MediaController(context, session!!)
+            var currentMedia: MediaController? = null
+            if (session != null) {
+                currentMedia = MediaController(context, session)
+            }
 
             val name = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)
             val author = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)
-            val app = extras.getCharSequence("app").toString()
-            var icon = extras.getParcelable("appIcon", Icon::class.java) as Icon
+            val app = extras.getString("app")!!
+            val icon = extras.getParcelable("appIcon", Icon::class.java) as Icon
             val title = "$name - $author"
 
             // If it's playing
-            if (newSession.playbackState!!.state == PlaybackState.STATE_PLAYING) {
+            if (currentMedia != null && currentMedia.playbackState!!.state == PlaybackState.STATE_PLAYING) {
 
-                val toggleColorfulMusicIcons = prefs.getBoolean("toggleColorfulMusicIcons", true)
+                val iconColor = GlanceUtil.getPlayerIconColor(app)
 
-                if (toggleColorfulMusicIcons) {
-                    if (app == "com.spotify.music") {
-                        icon = icon.setTint(Color.rgb(30, 215, 96))
+                views.setInt(
+                    R.id.musicIcon,
+                    "setBackgroundResource",
+                    GlanceUtil.getNotificationIconShape(Preferences.musicIconShape)
+                )
+                if (Preferences.colorfulNotificationIcons) {
+                    if (iconColor.toColor().luminance() < 0.65) {
+                        icon.setTint(Color.WHITE)
+                    } else {
+                        icon.setTint(Color.BLACK)
                     }
-                    if (app == "com.google.android.youtube" || app == "com.google.android.apps.youtube.music") {
-                        icon = icon.setTint(Color.rgb(255, 0, 0))
-                    }
+
+                    views.setColorStateList(
+                        R.id.musicIcon,
+                        "setBackgroundTintList",
+                        ColorStateList.valueOf(iconColor)
+                    )
+                } else {
+                    icon.setTint(Color.BLACK)
+                    views.setColorStateList(
+                        R.id.musicIcon,
+                        "setBackgroundTintList",
+                        ColorStateList.valueOf(Color.WHITE)
+                    )
                 }
 
                 views.setImageViewIcon(R.id.musicIcon, icon)
@@ -116,7 +197,6 @@ class LechGlance : AppWidgetProvider() {
                     PendingIntent.FLAG_IMMUTABLE
                 )
                 views.setOnClickPendingIntent(R.id.musicContainer, musicIntent);
-
             } else {
                 views.setViewVisibility(R.id.musicContainer, View.GONE)
             }
@@ -124,31 +204,64 @@ class LechGlance : AppWidgetProvider() {
             appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
 
         }
-        if (intent.action.equals("com.lechixy.lechwidgets.NEW_NOTIFICATION")) {
-            val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE).toString()
-            val icon =
-                extras.getParcelable(NotificationCompat.EXTRA_SMALL_ICON, Icon::class.java) as Icon
-            val app = extras.getCharSequence("app").toString()
-            if (title.isNullOrEmpty()) return;
-
-            val key = extras.getCharSequence("key").toString()
-            editor.putString("lastKey", key)
-            editor.apply()
-
-            views.setViewVisibility(R.id.notificationContainer, View.VISIBLE)
-
-            icon.setTint(Color.WHITE)
-            views.setImageViewIcon(R.id.notificationIcon, icon)
+        if (intent.action.equals(GlanceUtil.Events.NEW_NOTIFICATION)) {
+            val title = extras.getString(NotificationCompat.EXTRA_TITLE)
+            val app = extras.getString("app")
 
             views.setTextViewText(R.id.notification, title)
-            views.setOnClickPendingIntent(
-                R.id.notificationContainer, PendingIntent.getActivity(
-                    context,
-                    0,
-                    context.packageManager.getLaunchIntentForPackage(app),
-                    PendingIntent.FLAG_IMMUTABLE
+
+            // Sometimes notifications can be send by android so we prevent that to happen
+            try {
+                views.setOnClickPendingIntent(
+                    R.id.notificationContainer, PendingIntent.getActivity(
+                        context,
+                        0,
+                        context.packageManager.getLaunchIntentForPackage(app!!),
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
                 )
+            } catch (_: Exception) {
+            }
+
+            val key = extras.getString("key")!!
+            Preferences.notificationLastKey = key
+
+            val category = extras.getString("category")
+            if (Preferences.allowedNotificationCategories.isNotBlank() &&
+                category.isNullOrBlank().not() &&
+                Preferences.allowedNotificationCategories.split(",").contains(category).not()
+            ) return;
+
+            val iconColor = extras.getInt("iconColor")
+            val icon =
+                extras.getParcelable(NotificationCompat.EXTRA_SMALL_ICON, Icon::class.java) as Icon
+
+            views.setInt(
+                R.id.notificationIcon,
+                "setBackgroundResource",
+                GlanceUtil.getNotificationIconShape(Preferences.notificationIconShape)
             )
+            if (Preferences.colorfulNotificationIcons && iconColor != 0) {
+                if (iconColor.toColor().luminance() < 0.5) {
+                    icon.setTint(Color.WHITE)
+                } else {
+                    icon.setTint(Color.BLACK)
+                }
+
+                views.setColorStateList(
+                    R.id.notificationIcon,
+                    "setBackgroundTintList",
+                    ColorStateList.valueOf(iconColor)
+                )
+            } else {
+                icon.setTint(Color.BLACK)
+                views.setColorStateList(
+                    R.id.notificationIcon,
+                    "setBackgroundTintList",
+                    ColorStateList.valueOf(Color.WHITE)
+                )
+            }
+            views.setImageViewIcon(R.id.notificationIcon, icon)
 
             if (delayedRunnable != null) {
                 handler.removeCallbacks(delayedRunnable!!)
@@ -156,27 +269,25 @@ class LechGlance : AppWidgetProvider() {
 
             delayedRunnable = Runnable {
                 delayedRunnable = null
-                editor.remove("lastKey")
-                editor.apply()
+                Preferences.notificationLastKey = ""
 
                 views.setViewVisibility(R.id.notificationContainer, View.GONE)
                 appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
             }
 
             handler.postDelayed(delayedRunnable!!, 60 * 1000)
+
+            views.setViewVisibility(R.id.notificationContainer, View.VISIBLE)
             appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
 
         }
-        if (intent.action.equals("com.lechixy.lechwidgets.REMOVE_NOTIFICATION")) {
-            val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE).toString()
+        if (intent.action.equals(GlanceUtil.Events.REMOVE_NOTIFICATION)) {
+            //val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE).toString()
             val key = extras.getCharSequence("key").toString()
 
-            val lastNotificationKey = prefs.getString("lastKey", null)
-
-            if (lastNotificationKey.equals(key)) {
+            if (Preferences.notificationLastKey == key) {
                 delayedRunnable = null
-                editor.remove("lastKey")
-                editor.apply()
+                Preferences.notificationLastKey = ""
 
                 views.setViewVisibility(R.id.notificationContainer, View.GONE)
 
@@ -184,7 +295,7 @@ class LechGlance : AppWidgetProvider() {
             }
 
         }
-        if (intent.action.equals("com.lechixy.lechwidgets.UPDATE_BATTERY")) {
+        if (intent.action.equals(GlanceUtil.Events.UPDATE_BATTERY)) {
             val isPlugged = extras.getBoolean("isPlugged")
             val fullyCharged = extras.getBoolean("fullyCharged")
             val batteryPercentage = extras.getFloat("batteryPercentage")
@@ -195,8 +306,8 @@ class LechGlance : AppWidgetProvider() {
                 haveChange = true
                 views.setTextViewText(R.id.battery, "Fully charged")
                 var coloredDrawable =
-                    ContextCompat.getDrawable(context, R.drawable.batteryfull)
-                coloredDrawable = DrawableCompat.wrap(coloredDrawable!!)
+                    ContextCompat.getDrawable(context, R.drawable.batteryfull)  as Drawable
+                coloredDrawable = DrawableCompat.wrap(coloredDrawable)
                 DrawableCompat.setTint(coloredDrawable, Color.rgb(0, 255, 128))
                 val bitmap = coloredDrawable.toBitmap()
 
@@ -204,18 +315,17 @@ class LechGlance : AppWidgetProvider() {
             } else if (isPlugged) {
                 haveChange = true
                 views.setTextViewText(R.id.battery, "Charging ${batteryPercentage.toInt()}%")
-                val chargingIcon = getBatteryIcon(batteryPercentage.toInt())
+                val chargingIcon = GlanceUtil.getBatteryIcon(batteryPercentage.toInt())
                 views.setImageViewResource(R.id.batteryIcon, chargingIcon)
             } else if (batteryPercentage.toInt() <= 20) {
                 haveChange = true
                 views.setTextViewText(R.id.battery, "Charge your phone")
 
                 var coloredDrawable =
-                    ContextCompat.getDrawable(context, R.drawable.batterylow)
-                coloredDrawable = DrawableCompat.wrap(coloredDrawable!!)
+                    ContextCompat.getDrawable(context, R.drawable.batterylow)  as Drawable
+                coloredDrawable = DrawableCompat.wrap(coloredDrawable)
                 DrawableCompat.setTint(coloredDrawable, Color.rgb(229, 62, 53))
-                val bitmapDrawable = coloredDrawable
-                val bitmap = bitmapDrawable.toBitmap()
+                val bitmap = coloredDrawable.toBitmap()
 
                 views.setImageViewBitmap(R.id.batteryIcon, bitmap)
             } else {
@@ -282,20 +392,12 @@ class LechGlance : AppWidgetProvider() {
         super.onEnabled(context);
         // Enter relevant functionality for when the first widget is created
         scheduleUpdates(context)
-        batteryReceiver = BatteryReceiver()
-        context.applicationContext.registerReceiver(
-            batteryReceiver,
-            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        );
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         super.onDeleted(context, appWidgetIds);
         // reschedule update alarm so it does not include ID of currently removed widget
         scheduleUpdates(context)
-        if (batteryReceiver != null) {
-            context.applicationContext.unregisterReceiver(batteryReceiver);
-        }
     }
 
     override fun onDisabled(context: Context) {
@@ -336,9 +438,11 @@ class LechGlance : AppWidgetProvider() {
     private fun getUpdatePendingIntent(context: Context): PendingIntent {
         val widgetClass = this::class.java
         val widgetIds = getActiveWidgetIds(context)
+
         val updateIntent = Intent(context, widgetClass)
             .setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
             .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
+
         val requestCode = widgetClass.name.hashCode()
         val flags = PendingIntent.FLAG_CANCEL_CURRENT or
                 PendingIntent.FLAG_IMMUTABLE
@@ -349,7 +453,48 @@ class LechGlance : AppWidgetProvider() {
     private val Context.alarmManager: AlarmManager
         get() = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
+    private fun createNotificationChannel(
+        context: Context,
+        id: String,
+        name: String,
+        description: String,
+        importance: Int
+    ) {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is not in the Support Library.
+        val channel = NotificationChannel(id, name, importance)
+        channel.description = description
+        // Register the channel with the system.
+        val notificationManager: NotificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+    }
+
     private fun getWeather(context: Context, location: Location, formattedTime: String) {
+        createNotificationChannel(
+            context,
+            "weather",
+            "Weather update notifications",
+            "Notify you while updating weather",
+            NotificationManager.IMPORTANCE_LOW
+        )
+
+        val notificationBuilder = NotificationCompat.Builder(context, "weather")
+            .setSmallIcon(R.drawable.m3_location)
+            .setContentTitle("Updating weather")
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setColor(Color.YELLOW)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        val notificationManager = NotificationManagerCompat.from(context)
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationManager.notify(1, notificationBuilder.build())
+        }
+
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val views = RemoteViews(context.packageName, R.layout.lech_glance)
 
@@ -386,9 +531,13 @@ class LechGlance : AppWidgetProvider() {
             val request: Request = Request.Builder()
                 .url(url)
                 .build()
-            val response: Response = network.newCall(request).execute()
+            val response = try {
+                network.newCall(request).execute()
+            } catch (e: Exception) {
+                null
+            }
 
-            if (response.isSuccessful) {
+            if (response != null && response.isSuccessful) {
                 val responseBody = response.body!!.string()
 
                 views.setTextViewText(R.id.lastUpdate, "$formattedTime weather update")
@@ -401,9 +550,10 @@ class LechGlance : AppWidgetProvider() {
                 val sunrise = jsonObject.get("sys").asJsonObject.get("sunrise").asLong
                 val sunset = jsonObject.get("sys").asJsonObject.get("sunset").asLong
 
-                val dayOrNight = getItsDayOrNight(sunrise, sunset);
-                val iconName = getWeatherIcon(weatherId, dayOrNight)
-                views.setImageViewResource(R.id.weatherIcon, iconName)
+                val dayOrNight = GlanceUtil.getItsDayOrNight(sunrise, sunset);
+                val weather = GlanceUtil.getWeather(weatherId, dayOrNight)
+                views.setImageViewResource(R.id.weatherIcon, weather.iconName)
+                views.setTextViewText(R.id.weatherDescription, weather.weatherDescription)
 
                 val rawTemp = jsonObject.get("main").asJsonObject.get("temp").asFloat
                 val showFormat = DecimalFormat("#.0")
@@ -417,147 +567,12 @@ class LechGlance : AppWidgetProvider() {
                 views.setTextViewText(R.id.lastUpdate, "$formattedTime can't update")
             }
 
+            handler.postDelayed(Runnable {
+                notificationManager.cancel(1)
+            }, 1500)
+
             val activeWidgetIds = getActiveWidgetIds(context)
             appWidgetManager.updateAppWidget(activeWidgetIds, views)
         }
     }
-}
-
-fun getItsDayOrNight(sunrise: Long, sunset: Long): String {
-    val currentMil = System.currentTimeMillis()
-    val currentSec = Instant.ofEpochMilli(currentMil).epochSecond
-
-    return if (currentSec in sunrise..sunset) {
-        Log.i("Time", "It's daytime")
-        "day"
-    } else {
-        Log.i("Time", "It's night")
-        "night"
-    }
-}
-
-fun getWeatherIcon(weatherId: Int, dayOrNight: String): Int {
-    var iconName: Int
-
-    // Clear Sky
-    if (weatherId == 800 && dayOrNight == "day") {
-        iconName = R.drawable.w11_sun
-    } else {
-        iconName = R.drawable.w11_moon
-    }
-
-    // Partly Cloudy
-    if (weatherId in 801..804 && dayOrNight == "day") {
-        when (weatherId) {
-            801 -> iconName = R.drawable.w11_day_partly_cloudy;
-            802 -> iconName = R.drawable.w11_day_mostly_cloudy;
-            803 -> iconName = R.drawable.w11_day_full_cloudy;
-            804 -> iconName = R.drawable.w11_day_full_cloudy;
-        }
-    } else {
-        when (weatherId) {
-            801 -> iconName = R.drawable.w11_night_partly_cloudy;
-            802 -> iconName = R.drawable.w11_night_partly_cloudy;
-            803 -> iconName = R.drawable.w11_night_mostly_cloudy;
-            804 -> iconName = R.drawable.w11_night_mostly_cloudy;
-        }
-    }
-
-    // Atmosphere
-    if (weatherId in 701..781) {
-        when (weatherId) {
-            701 -> iconName = R.drawable.w11_fog;
-            711 -> iconName = R.drawable.w11_fog;
-            721 -> iconName = R.drawable.w11_haze;
-            731 -> iconName = R.drawable.w11_dust;
-            741 -> iconName = R.drawable.w11_fog;
-            751 -> iconName = R.drawable.w11_dust;
-            761 -> iconName = R.drawable.w11_dust;
-            762 -> iconName = R.drawable.w11_dust;
-            771 -> iconName = R.drawable.w11_hurricane;
-            781 -> iconName = R.drawable.w11_tornado;
-        }
-    }
-    // Snow
-    if (weatherId in 600..622) {
-        when (weatherId) {
-            600 -> iconName = R.drawable.w11_light_snow;
-            601 -> iconName = R.drawable.w11_snow;
-            602 -> iconName = R.drawable.w11_snow_storm;
-            611 -> iconName = R.drawable.w11_sleet;
-            612 -> iconName = R.drawable.w11_sleet;
-            613 -> iconName = R.drawable.w11_sleet;
-            615 -> iconName = R.drawable.w11_sleet;
-            616 -> iconName = R.drawable.w11_sleet;
-            620 -> iconName = R.drawable.w11_light_snow;
-            621 -> iconName = R.drawable.w11_snow;
-            622 -> iconName = R.drawable.w11_snow_storm;
-        }
-    }
-    // Rain
-    if (weatherId in 500..531) {
-        when (weatherId) {
-            500 -> iconName = R.drawable.w11_rain;
-            501 -> iconName = R.drawable.w11_rain;
-            502 -> iconName = R.drawable.w11_heavy_rain;
-            503 -> iconName = R.drawable.w11_very_heavy_rain;
-            504 -> iconName = R.drawable.w11_extreme_rain;
-            511 -> iconName = R.drawable.w11_sleet;
-            520 -> iconName = R.drawable.w11_rain;
-            521 -> iconName = R.drawable.w11_rain;
-            522 -> iconName = R.drawable.w11_heavy_rain;
-            531 -> iconName = R.drawable.w11_heavy_rain;
-        }
-    }
-    // Drizzle
-    if (weatherId in 300..321) {
-        when (weatherId) {
-            300 -> iconName = R.drawable.w11_drizzle;
-            301 -> iconName = R.drawable.w11_drizzle;
-            302 -> iconName = R.drawable.w11_drizzle;
-            310 -> iconName = R.drawable.w11_rain;
-            311 -> iconName = R.drawable.w11_rain;
-            312 -> iconName = R.drawable.w11_heavy_rain;
-            313 -> iconName = R.drawable.w11_rain;
-            314 -> iconName = R.drawable.w11_heavy_rain;
-            321 -> iconName = R.drawable.w11_drizzle;
-        }
-    }
-    // Thunderstorms
-    if (weatherId in 200..232) {
-        when (weatherId) {
-            200 -> iconName = R.drawable.w11_storm;
-            201 -> iconName = R.drawable.w11_storm;
-            202 -> iconName = R.drawable.w11_heavy_storm;
-            210 -> iconName = R.drawable.w11_storm;
-            211 -> iconName = R.drawable.w11_storm;
-            212 -> iconName = R.drawable.w11_heavy_storm;
-            221 -> iconName = R.drawable.w11_rain;
-            230 -> iconName = R.drawable.w11_storm;
-            231 -> iconName = R.drawable.w11_storm;
-            232 -> iconName = R.drawable.w11_heavy_storm;
-        }
-    }
-
-    return iconName;
-}
-
-fun getBatteryIcon(batteryPercentage: Int): Int {
-    var batteryIcon = R.drawable.batterycharging20
-
-    if (batteryPercentage <= 20) {
-        batteryIcon = R.drawable.batterycharging20
-    } else if (batteryPercentage <= 30) {
-        batteryIcon = R.drawable.batterycharging30
-    } else if (batteryPercentage <= 50) {
-        batteryIcon = R.drawable.batterycharging50
-    } else if (batteryPercentage <= 60) {
-        batteryIcon = R.drawable.batterycharging60
-    } else if (batteryPercentage <= 80) {
-        batteryIcon = R.drawable.batterycharging80
-    } else if (batteryPercentage < 100) {
-        batteryIcon = R.drawable.batterycharging90
-    }
-
-    return batteryIcon;
 }

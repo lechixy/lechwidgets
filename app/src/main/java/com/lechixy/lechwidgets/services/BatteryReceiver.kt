@@ -1,12 +1,12 @@
-package com.lechixy.lechwidgets
+package com.lechixy.lechwidgets.services
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.BatteryManager
-import android.os.Build
 import android.os.Bundle
-import androidx.annotation.RequiresApi
+import com.lechixy.lechwidgets.common.GlanceUtil
+import com.lechixy.lechwidgets.widgets.glance.LechGlance
 
 class BatteryReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -35,7 +35,7 @@ class BatteryReceiver : BroadcastReceiver() {
 
             // Create an intent to send data to the widget provider
             val sendIntent = Intent(context, LechGlance::class.java)
-            sendIntent.action = "com.lechixy.lechwidgets.UPDATE_BATTERY"
+            sendIntent.action = GlanceUtil.Events.UPDATE_BATTERY
             sendIntent.putExtras(extras)
 
             context.sendBroadcast(sendIntent)

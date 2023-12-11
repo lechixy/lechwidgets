@@ -4,11 +4,11 @@
     style="@style/Widget.LechWidgets.AppWidget.Container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:animateLayoutChanges="true"
     android:clickable="true"
     android:gravity="center"
-    android:soundEffectsEnabled="true"
-    android:animateLayoutChanges="true"
     android:orientation="vertical"
+    android:soundEffectsEnabled="true"
     android:theme="@style/Theme.LechWidgets.AppWidgetContainer">
 
 
@@ -20,20 +20,17 @@
 
         <TextClock
             android:id="@+id/timeText"
+            style="@style/default_font"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:format12Hour="h:mm"
             android:gravity="end"
-            android:textColor="@android:color/white"
-            android:textSize="80sp"
-            android:shadowColor="#000000"
-            android:shadowDx="0"
-            android:shadowDy="0"
-            android:shadowRadius="5" />
+            android:textSize="80sp" />
 
         <TextClock
             android:id="@+id/timeTextExtension"
+            style="@style/default_font"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
@@ -41,11 +38,7 @@
             android:format12Hour="a"
             android:gravity="start|bottom"
             android:textColor="#CFCFCF"
-            android:textSize="35sp"
-            android:shadowColor="#000000"
-            android:shadowDx="0"
-            android:shadowDy="0"
-            android:shadowRadius="5" />
+            android:textSize="35sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -65,25 +58,57 @@
 
             <TextClock
                 android:id="@+id/date"
+                style="@style/default_font"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:fontFamily="sans-serif"
                 android:format12Hour="EEEE, d MMM"
-                android:shadowColor="#000000"
-                android:shadowDx="0"
-                android:shadowDy="0"
-                android:shadowRadius="5"
-                android:textColor="@android:color/white"
-                android:textSize="@dimen/dateAndWeatherTitle" />
+                android:textSize="@dimen/glance_dateAndWeatherTitle" />
 
-            <TextView
-                android:id="@+id/lastUpdate"
+
+            <LinearLayout
+                android:id="@+id/eventContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="lastUpdate"
-                android:textSize="@dimen/dateAndWeatherSubtitle" />
+                android:gravity="start"
+                android:orientation="horizontal">
+                <ImageView
+                    android:id="@+id/eventIcon"
+                    android:layout_width="@dimen/glance_dateAndWeatherSubtitle"
+                    android:layout_height="match_parent"
+                    android:layout_marginEnd="4dp"
+                    android:src="@drawable/m3_celebration"
+                    android:visibility="gone"/>
+                <TextView
+                    android:id="@+id/todaysEvent"
+                    style="@style/default_font"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/glance_subtitle_light"
+                    android:text="@string/glance_noEvent"
+                    android:textSize="@dimen/glance_dateAndWeatherSubtitle" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/lastUpdateContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/lastUpdate"
+                    style="@style/default_font"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="lastUpdate"
+                    android:textColor="#6C6C6C"
+                    android:textSize="@dimen/glance_dateAndWeatherSubtitle" />
+            </LinearLayout>
+
         </LinearLayout>
 
         <LinearLayout
@@ -104,22 +129,39 @@
 
                 <ImageView
                     android:id="@+id/weatherIcon"
-                    android:layout_width="@dimen/dateAndWeatherTitle"
+                    android:layout_width="@dimen/glance_dateAndWeatherTitle"
                     android:layout_height="match_parent"
                     android:layout_marginEnd="4dp"
                     android:src="@drawable/w11_sun" />
 
                 <TextView
                     android:id="@+id/weatherTemp"
+                    style="@style/default_font"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:shadowColor="#000000"
-                    android:shadowDx="0"
-                    android:shadowDy="0"
-                    android:shadowRadius="5"
                     android:text="32°C"
-                    android:textColor="@android:color/white"
-                    android:textSize="@dimen/dateAndWeatherTitle" />
+                    android:textSize="@dimen/glance_dateAndWeatherTitle" />
+
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:id="@+id/weatherDescriptionContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/weatherDescription"
+                    style="@style/default_font"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/glance_subtitle_light"
+                    android:text="Clear Sky"
+                    android:textSize="@dimen/glance_dateAndWeatherSubtitle" />
+
             </LinearLayout>
 
             <LinearLayout
@@ -132,22 +174,19 @@
 
                 <ImageView
                     android:id="@+id/locationIcon"
-                    android:layout_width="@dimen/dateAndWeatherSubtitle"
+                    android:layout_width="@dimen/glance_dateAndWeatherSubtitle"
                     android:layout_height="match_parent"
                     android:layout_marginEnd="4dp"
-                    android:src="@drawable/location" />
+                    android:src="@drawable/m3_location" />
 
                 <TextView
                     android:id="@+id/location"
+                    style="@style/default_font"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:shadowColor="#000000"
-                    android:shadowDx="0"
-                    android:shadowDy="0"
-                    android:shadowRadius="5"
+                    android:textColor="@color/glance_subtitle_light"
                     android:text="İstanbul"
-                    android:textColor="@android:color/white"
-                    android:textSize="@dimen/dateAndWeatherSubtitle" />
+                    android:textSize="@dimen/glance_dateAndWeatherSubtitle" />
 
             </LinearLayout>
 
@@ -165,23 +204,20 @@
 
         <ImageView
             android:id="@+id/notificationIcon"
-            android:layout_width="16sp"
-            android:layout_height="match_parent"
+            android:layout_width="20sp"
+            android:layout_height="20sp"
             android:layout_marginEnd="4dp"
-            app:tint="@color/white" />
+            android:adjustViewBounds="true"
+            android:padding="3dp" />
 
         <TextView
             android:id="@+id/notification"
+            style="@style/default_font"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:shadowColor="#000000"
-            android:shadowDx="0"
-            android:shadowDy="0"
-            android:shadowRadius="5"
-            android:textColor="@color/white"
-            android:textSize="15sp" />
+            android:textSize="@dimen/glance_titles" />
     </LinearLayout>
 
     <LinearLayout
@@ -194,23 +230,21 @@
 
         <ImageView
             android:id="@+id/musicIcon"
-            android:layout_width="16sp"
+            android:layout_width="@dimen/glance_icons"
             android:layout_height="match_parent"
-            android:src="@drawable/music_note"
-            android:layout_marginEnd="4dp" />
+            android:layout_marginEnd="4dp"
+            android:adjustViewBounds="true"
+            android:padding="3dp"
+            android:src="@drawable/m3_music" />
 
         <TextView
             android:id="@+id/music"
+            style="@style/default_font"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:shadowColor="#000000"
-            android:shadowDx="0"
-            android:shadowDy="0"
-            android:shadowRadius="5"
-            android:textColor="@color/white"
-            android:textSize="15sp" />
+            android:textSize="@dimen/glance_titles" />
     </LinearLayout>
 
     <LinearLayout
@@ -223,22 +257,18 @@
 
         <ImageView
             android:id="@+id/batteryIcon"
-            android:layout_width="16sp"
+            android:layout_width="@dimen/glance_icons"
             android:layout_height="match_parent"
-            android:src="@drawable/batteryfull"
-            android:layout_marginEnd="2dp" />
+            android:layout_marginEnd="2dp"
+            android:src="@drawable/batteryfull" />
 
         <TextView
             android:id="@+id/battery"
+            style="@style/default_font"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:shadowColor="#000000"
-            android:shadowDx="0"
-            android:shadowDy="0"
-            android:shadowRadius="5"
-            android:textColor="@color/white"
-            android:textSize="15sp" />
+            android:textSize="@dimen/glance_titles" />
     </LinearLayout>
 </LinearLayout>

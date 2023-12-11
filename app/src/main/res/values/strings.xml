@@ -1,4 +1,35 @@
 <resources>
     <string name="app_name">Lech Widgets</string>
-    <string name="app_widget_description">A widget for feel the glance</string>
+
+
+    <string name="lech_glance_name">Lech Glance</string>
+    <string name="lech_glance_description">A widget for feel the glance</string>
+
+    <string name="lech_pinterest_name">Lech Pinterest</string>
+    <string name="lech_pinterest_description">A widget for getting pins to widget from boards</string>
+
+
+    <string name="github">https://github.com/lechixy/lechwidgets</string>
+    <string-array name="app_version">
+        <item>1.0</item>
+        <item>1.1</item>
+    </string-array>
+    <string-array name="app_version_date">
+        <item>Nov 10, 2023</item>
+        <item>Nov 26, 2023</item>
+    </string-array>
+
+
+    <string name="settings">Settings</string>
+    <string name="general">General</string>
+    <string name="general_desc">Change preferences for widgets</string>
+    <string name="about">About</string>
+    <string name="about_desc">Somethings about the app</string>
+
+    <string name="confirm">Confirm</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="configure">Configure</string>
+    <string name="add_widget">Add widget</string>
+    <string name="pinterest_reloadMessage">Please reload or configure pin to use it!</string>
+    <string name="glance_noEvent">No event for today</string>
 </resources>

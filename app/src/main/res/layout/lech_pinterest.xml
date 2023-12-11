@@ -1,0 +1,33 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LechWidgets.AppWidget.Container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:gravity="center"
+    android:soundEffectsEnabled="true"
+    android:animateLayoutChanges="true"
+    android:orientation="vertical"
+    android:clipToOutline="true"
+    android:background="@drawable/round_corner"
+    android:theme="@style/Theme.LechWidgets.AppWidgetContainer"
+    tools:targetApi="s" >
+
+    <ImageView
+        android:id="@+id/pinImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:adjustViewBounds="true"
+        android:src="@drawable/lech_pinterest_initial"
+        android:contentDescription="@string/lech_pinterest_description" />
+
+<!--    <TextView-->
+<!--        android:id="@+id/updateText"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="match_parent"-->
+<!--        android:text="no update"-->
+<!--        android:textColor="@color/white"-->
+<!--        android:textSize="20sp"/>-->
+
+</RelativeLayout>

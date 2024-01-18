@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:description="@string/lech_bing_description"
+    android:initialLayout="@layout/lech_bing"
+    android:configure="com.lechixy.lechwidgets.widgets.bing.BingActivity"
+    android:widgetFeatures="reconfigurable"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:previewLayout="@layout/lech_bing"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen"
+    tools:targetApi="s" />

@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
@@ -47,10 +49,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
-import com.lechixy.lechsaver.components.LechDialog
+import com.lechixy.lechwidgets.components.LechDialog
 import com.lechixy.lechwidgets.database.BoardDatabase
 import com.lechixy.lechwidgets.database.BoardEvent
 import com.lechixy.lechwidgets.database.BoardViewModel
@@ -58,7 +61,9 @@ import com.lechixy.lechwidgets.R
 import com.lechixy.lechwidgets.common.PinterestUtil
 import com.lechixy.lechwidgets.components.ConfirmButton
 import com.lechixy.lechwidgets.components.PreferenceItem
+import com.lechixy.lechwidgets.components.PreferenceItemGroup
 import com.lechixy.lechwidgets.ui.theme.LechWidgetsTheme
+import com.lechixy.lechwidgets.widgets.glance.LechGlance
 import com.prof18.rssparser.RssParserBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -88,7 +93,7 @@ class PinterestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         overridePendingTransition(
-            R.anim.slide_in,
+            androidx.appcompat.R.anim.abc_fade_in,
             androidx.appcompat.R.anim.abc_fade_out
         );
 
@@ -375,13 +380,13 @@ class PinterestActivity : ComponentActivity() {
                             Spacer(modifier = Modifier.height(6.dp))
                             Button(
                                 onClick = {
-                                    val intent =
-                                        Intent(this@PinterestActivity, LechPinterest::class.java)
-                                    intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                                    intent.putExtra(
-                                        AppWidgetManager.EXTRA_APPWIDGET_IDS,
-                                        intArrayOf(appWidgetId)
-                                    )
+                                    val intent = Intent(this@PinterestActivity, LechPinterest::class.java).apply {
+                                        action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                                        putExtra(
+                                            AppWidgetManager.EXTRA_APPWIDGET_IDS,
+                                            intArrayOf(appWidgetId)
+                                        )
+                                    }
                                     sendBroadcast(intent)
                                     scope.launch(Dispatchers.Main){
                                         snackbarHostState.showSnackbar(
@@ -398,138 +403,101 @@ class PinterestActivity : ComponentActivity() {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(it),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
+                                .padding(it)
                         ) {
-                            Row(
+                            LazyColumn(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
                                 modifier = Modifier
                                     .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
+                                userScrollEnabled = true,
                             ) {
-                                Button(
-                                    onClick = {
-                                        val intent =
-                                            Intent(
-                                                this@PinterestActivity,
-                                                LechPinterest::class.java
-                                            )
-                                        intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                                        intent.putExtra(
-                                            AppWidgetManager.EXTRA_APPWIDGET_IDS,
-                                            appWidgetIds
+                                item {
+                                    Text(
+                                        text = "General",
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(10.dp)
+                                    )
+                                    PreferenceItemGroup {
+//                                        PreferenceItem(
+//                                            title = "Glance Theme",
+//                                            description = glanceTheme,
+//                                            descriptionColor = MaterialTheme.colorScheme.primary,
+//                                            icon = painterResource(R.drawable.m3_palette),
+//                                            iconColor = MaterialTheme.colorScheme.primary,
+//                                            trailingIcon = {
+//                                                Icon(
+//                                                    Icons.Outlined.Settings, null,
+//                                                    tint = MaterialTheme.colorScheme.outline
+//                                                )
+//                                            },
+//                                            trailingIconDivider = true,
+//                                            onClick = {
+//                                                showGlanceThemeDialog = true
+//                                            }
+//                                        )
+                                        PreferenceItem(
+                                            title = "Add widget",
+                                            description = "You can add a delicious widget",
+                                            descriptionColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            icon = Icons.Default.Add,
+                                            iconColor = MaterialTheme.colorScheme.primary,
+                                            onClick = {
+                                                val appWidgetManager =
+                                                    AppWidgetManager.getInstance(this@PinterestActivity)
+                                                val myProvider =
+                                                    ComponentName(
+                                                        this@PinterestActivity,
+                                                        LechPinterest::class.java
+                                                    )
+                                                if (appWidgetManager.isRequestPinAppWidgetSupported) {
+                                                    appWidgetManager.requestPinAppWidget(
+                                                        myProvider,
+                                                        null,
+                                                        null
+                                                    )
+                                                }
+                                            }
                                         )
-                                        sendBroadcast(intent)
-                                        scope.launch(Dispatchers.Main){
-                                            snackbarHostState.showSnackbar(
-                                                "Reloaded this widget",
-                                                duration = SnackbarDuration.Short
-                                            )
-                                        }
-                                    }
-                                ) {
-                                    Text(text = "Reload all widgets")
-                                }
-                                Button(onClick = {
-                                    val appWidgetManager =
-                                        AppWidgetManager.getInstance(this@PinterestActivity)
-                                    val myProvider =
-                                        ComponentName(
-                                            this@PinterestActivity,
-                                            LechPinterest::class.java
+                                        PreferenceItem(
+                                            title = "Reload widgets",
+                                            description = "Sometimes the widget may freeze, reloading can solves the problem",
+                                            descriptionColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            icon = Icons.Default.Refresh,
+                                            iconColor = MaterialTheme.colorScheme.error,
+                                            onClick = {
+                                                updateWidgets(appWidgetIds)
+                                                Toast.makeText(
+                                                    this@PinterestActivity,
+                                                    "Reloaded app widgets",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                         )
-
-                                    if (appWidgetManager.isRequestPinAppWidgetSupported) {
-                                        appWidgetManager.requestPinAppWidget(myProvider, null, null)
                                     }
-                                }) {
-                                    Text(text = "Add widget")
                                 }
                             }
                         }
                     }
-
-                    //                        LechDialog(
-//                            onDismissRequest = {
-//                                val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-//                                setResult(Activity.RESULT_CANCELED, resultValue)
-//                            },
-//                            confirmButton = {
-//                                ConfirmButton {
-//                                    if(appWidgetId != 0){
-//                                        onEvent(BoardEvent.SetId(appWidgetId))
-//                                        onEvent(BoardEvent.SaveBoard)
-//
-//                                        val resultValue =
-//                                            Intent().putExtra(
-//                                                AppWidgetManager.EXTRA_APPWIDGET_ID,
-//                                                appWidgetId
-//                                            )
-//                                        setResult(RESULT_OK, resultValue)
-//                                        finish()
-//                                    } else {
-//                                        onEvent(BoardEvent.HideDialog)
-//                                    }
-//                                }
-//                            },
-//                            title = { Text("Add board") },
-//                            // description = { Text("Paste url to your board") },
-//                            icon = { Icon(Icons.Default.Add, contentDescription = null) },
-//                            text = {
-//                                Column(
-//                                    modifier = Modifier
-//                                        .padding(20.dp, 10.dp)
-//                                ) {
-//                                    TextField(
-//                                        value = state.user,
-//                                        onValueChange = {
-//                                            onEvent(BoardEvent.SetUser(it))
-//                                        },
-//                                        placeholder = { Text("User of board") }
-//                                    )
-//                                    Spacer(modifier = Modifier.height(10.dp))
-//                                    TextField(
-//                                        value = state.board,
-//                                        onValueChange = {
-//                                            onEvent(BoardEvent.SetBoard(it))
-//                                        },
-//                                        placeholder = { Text("Name of board") }
-//                                    )
-//                                    Spacer(modifier = Modifier.height(10.dp))
-//                                    TextField(
-//                                        value = state.frequency,
-//                                        onValueChange = {
-//                                            onEvent(BoardEvent.SetFrequency(it))
-//                                        },
-//                                        placeholder = { Text("Frequency") }
-//                                    )
-//                                }
-//                            }
-//                        )
-
-//                    LazyColumn(
-//                        contentPadding = it,
-//                        horizontalAlignment = Alignment.CenterHorizontally,
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .fillMaxHeight(0.75f)
-//                    ) {
-//                        items(state.boards) { board ->
-//                            Row(
-//                                modifier = Modifier.fillMaxWidth()
-//                            ) {
-//                                Text(board.board)
-//                            }
-//                        }
-//                    }
                 }
             }
         }
     }
 
+    private fun updateWidgets(appWidgetIds: IntArray) {
+        val intent = Intent(this@PinterestActivity, LechPinterest::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
+        }
+        sendBroadcast(intent)
+    }
+
     override fun finish() {
         super.finish()
-        overridePendingTransition(androidx.appcompat.R.anim.abc_fade_in, R.anim.slide_out)
+        overridePendingTransition(
+            androidx.appcompat.R.anim.abc_fade_in,
+            androidx.appcompat.R.anim.abc_fade_out
+        );
     }
 }

@@ -40,6 +40,48 @@
             android:resource="@array/preloaded_fonts" />
 
         <receiver
+            android:name=".widgets.bing.LechGoogle"
+            android:label="@string/lech_google_name"
+            android:exported="false" >
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/lech_google_info" />
+        </receiver>
+
+        <activity
+            android:name=".widgets.google.GoogleActivity"
+            android:exported="false" >
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widgets.bing.LechBing"
+            android:label="@string/lech_bing_name"
+            android:exported="false" >
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/lech_bing_info" />
+        </receiver>
+
+        <activity
+            android:name=".widgets.bing.BingActivity"
+            android:exported="false" >
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <receiver
             android:name=".widgets.pinterest.LechPinterest"
             android:label="@string/lech_pinterest_name"
             android:exported="false" >

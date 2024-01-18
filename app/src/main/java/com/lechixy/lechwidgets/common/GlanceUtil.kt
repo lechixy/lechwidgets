@@ -1,17 +1,22 @@
 package com.lechixy.lechwidgets.common
 
 import android.annotation.SuppressLint
-import android.app.WallpaperColors
 import android.content.Context
 import android.database.Cursor
 import android.graphics.Color
+import android.os.Build
 import android.provider.CalendarContract
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.toColor
 import com.lechixy.lechwidgets.R
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneOffset
 import java.util.Calendar
+import java.util.TimeZone
 
 class GlanceUtil {
 
@@ -58,7 +63,35 @@ class GlanceUtil {
         const val UPDATE_BATTERY = "com.lechixy.lechwidgets.UPDATE_BATTERY"
     }
 
+    object Colors {
+        val BATTERY_LOW = Color.rgb(225, 52, 55)
+        val BATTERY_FULL = Color.rgb(61, 220, 133)
+    }
+
+    object ThemeColors {
+        val LIGHT = PreferColor(
+            Color.parseColor("#FFFFFF"),
+            Color.parseColor("#EBEBEB")
+        )
+        val DARK = PreferColor(
+            Color.parseColor("#000000"),
+            Color.parseColor("#141414")
+        )
+    }
+
+    object GlanceThemeColors {
+        val AUTO = "Auto"
+        val LIGHT = "Light"
+        val DARK = "Dark"
+    }
+
     companion object {
+
+        val GlanceTheme = listOf(
+            "Auto",
+            "Light",
+            "Dark"
+        )
 
         fun getPlayerIconColor(app: String): Int {
             var iconColor = Color.WHITE
@@ -93,8 +126,15 @@ class GlanceUtil {
             }
         }
 
+        @RequiresApi(Build.VERSION_CODES.S)
         fun isWallpaperSupportsLight(colorHint: Int): Boolean {
-            return colorHint and WallpaperColors.HINT_SUPPORTS_DARK_THEME != 0
+            return if (colorHint == 6){
+                true
+            } else if (colorHint == 4){
+                false
+            } else {
+                false
+            }
         }
 
         fun getAllIconsOnWidget(): List<WidgetIcon> {
@@ -105,28 +145,27 @@ class GlanceUtil {
 
         fun getAllTextsOnWidget(): List<GlanceText> {
             return listOf(
-                GlanceText(GlanceTextType.TITLE, R.id.timeText), GlanceText(GlanceTextType.TITLE, R.id.timeTextExtension),
+                GlanceText(GlanceTextType.TITLE, R.id.timeText), GlanceText(GlanceTextType.SUBTITLE, R.id.timeTextExtension),
                 GlanceText(GlanceTextType.TITLE, R.id.date), GlanceText(GlanceTextType.TITLE, R.id.weatherTemp),
-                GlanceText(GlanceTextType.SUBTITLE, R.id.todaysEvent), GlanceText(GlanceTextType.SUBTITLE, R.id.weatherDescription),
-                GlanceText(GlanceTextType.SUBTITLE, R.id.location), GlanceText(GlanceTextType.SUBTITLE, R.id.notification),
-                GlanceText(GlanceTextType.SUBTITLE, R.id.music), GlanceText(GlanceTextType.SUBTITLE, R.id.battery),
+                /*GlanceText(GlanceTextType.TITLE, R.id.todaysEvent),*/ GlanceText(GlanceTextType.SUBTITLE, R.id.weatherDescription),
+                GlanceText(GlanceTextType.SUBTITLE, R.id.location), GlanceText(GlanceTextType.TITLE, R.id.notification),
+                GlanceText(GlanceTextType.TITLE, R.id.music), //GlanceText(GlanceTextType.SUBTITLE, R.id.battery),
             )
         }
 
         @SuppressLint("Range")
         fun getTodaysFirstEvent(context: Context): CalendarEvent? {
-            val todayCalendar = Calendar.getInstance().apply {
-                add(Calendar.DAY_OF_MONTH, -1)
-            }
-            val today = todayCalendar.timeInMillis // Get today's timestamp
-            val tomorrowCalendar = Calendar.getInstance().apply {
-                add(Calendar.DAY_OF_MONTH, 1)
-            }
-            val tomorrow = tomorrowCalendar.timeInMillis
+            val today = LocalDate.now()
+                .atTime(LocalTime.of(0, 0))
+                .toInstant(ZoneOffset.UTC).toEpochMilli()
+
+            val after = Calendar.getInstance().apply {
+                add(Calendar.MONTH, 1)
+            }.timeInMillis
 
             val projection = arrayOf(
                 CalendarContract.Events.TITLE,
-                CalendarContract.Events.EVENT_COLOR,
+                CalendarContract.Events.DISPLAY_COLOR,
                 CalendarContract.Events.ALL_DAY,
                 CalendarContract.Events.DTSTART,
                 CalendarContract.Events.DTEND
@@ -138,7 +177,7 @@ class GlanceUtil {
                     )
             val selectionArgs = arrayOf(
                 today.toString(),
-                tomorrow.toString() // Adding milliseconds for a day to get events till end of today
+                after.toString() // Adding milliseconds for a day to get events till end of today
             )
 
             val uri = CalendarContract.Events.CONTENT_URI
@@ -151,31 +190,34 @@ class GlanceUtil {
                 null
             )
 
-            var event: CalendarEvent? = null
+            val events: MutableList<CalendarEvent?> = mutableListOf()
             cursor?.use {
                 while (it.moveToNext()) {
                     val title = it.getString(it.getColumnIndex(CalendarContract.Events.TITLE))
-                    val eventColor = it.getInt(it.getColumnIndex(CalendarContract.Events.EVENT_COLOR))
+                    val eventColor = it.getInt(it.getColumnIndex(CalendarContract.Events.DISPLAY_COLOR))
                     val isAllDay = it.getInt(it.getColumnIndex(CalendarContract.Events.ALL_DAY))
                     val startTime = it.getLong(it.getColumnIndex(CalendarContract.Events.DTSTART))
                     val endTime = it.getLong(it.getColumnIndex(CalendarContract.Events.DTEND))
 
-                    event = CalendarEvent(
-                        title,
-                        eventColor,
-                        when(isAllDay){
-                            1 -> true
-                            0-> false
-                            else -> false
-                        },
-                        startTime,
-                        endTime
+                    events.add(
+                        CalendarEvent(
+                            title,
+                            eventColor,
+                            when(isAllDay){
+                                1 -> true
+                                else -> false
+                            },
+                            startTime,
+                            endTime
+                        )
                     )
                 }
             }
             cursor?.close()
 
-            return event
+            return if(events.isEmpty()){
+                null
+            } else events.first()
         }
 
         val IconShapes = listOf(

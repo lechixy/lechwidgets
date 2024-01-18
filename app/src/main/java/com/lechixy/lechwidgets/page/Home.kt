@@ -80,6 +80,8 @@ import com.lechixy.lechwidgets.widgets.glance.GlanceActivity
 import com.lechixy.lechwidgets.R
 import com.lechixy.lechwidgets.components.ColoredAppText
 import com.lechixy.lechwidgets.components.WidgetItem
+import com.lechixy.lechwidgets.widgets.bing.BingActivity
+import com.lechixy.lechwidgets.widgets.google.GoogleActivity
 import com.lechixy.lechwidgets.widgets.pinterest.PinterestActivity
 
 
@@ -114,7 +116,7 @@ fun Home(
                 title = {
                     ColoredAppText()
                 },
-                actions = {
+                navigationIcon = {
                     IconButton(
                         onClick = { navigateToSettings() }
                     ) {
@@ -140,6 +142,30 @@ fun Home(
                 .padding(20.dp, 0.dp)
         ) {
             item {
+                WidgetItem(
+                    onClick = {
+                        val intent = Intent(context, GoogleActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    layout = R.layout.lech_google,
+                    widgetName = stringResource(R.string.lech_google_name),
+                    widgetDescription = stringResource(R.string.lech_google_description)
+                )
+                Spacer(
+                    modifier = Modifier.height(20.dp)
+                )
+                WidgetItem(
+                    onClick = {
+                        val intent = Intent(context, BingActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    layout = R.layout.lech_bing,
+                    widgetName = stringResource(R.string.lech_bing_name),
+                    widgetDescription = stringResource(R.string.lech_pinterest_description)
+                )
+                Spacer(
+                    modifier = Modifier.height(20.dp)
+                )
                 WidgetItem(
                     onClick = {
                         val intent = Intent(context, GlanceActivity::class.java)

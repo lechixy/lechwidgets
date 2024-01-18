@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:description="@string/lech_google_description"
+    android:initialLayout="@layout/lech_google"
+    android:configure="com.lechixy.lechwidgets.widgets.google.GoogleActivity"
+    android:widgetFeatures="reconfigurable"
+    android:minHeight="55dp"
+    android:minWidth="110dp"
+    android:previewLayout="@layout/lech_google"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen"
+    tools:ignore="UnusedAttribute" />

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.LechWidgets.AppWidget.Container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:gravity="center"
+    android:soundEffectsEnabled="true"
+    android:animateLayoutChanges="true"
+    android:orientation="vertical"
+    android:clipToOutline="true"
+    android:background="@drawable/round_corner"
+    android:theme="@style/Theme.LechWidgets.AppWidgetContainer"
+    tools:targetApi="s" >
+
+    <ImageView
+        android:id="@+id/bingImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/lech_bing_description"
+        android:scaleType="centerCrop"
+        android:src="@drawable/lech_bing_initial" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="bottom|end"
+        android:orientation="vertical"
+        android:paddingEnd="10dp"
+        android:paddingBottom="10dp">
+
+        <TextView
+            android:id="@+id/bingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+        <!--            android:text="@string/lech_bing_initial_title"-->
+
+        <TextView
+            android:id="@+id/bingCopyright"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/glance_subtitle_light"
+            android:textSize="11sp" />
+        <!--            android:text="@string/lech_bing_initial_copyright"-->
+    </LinearLayout>
+
+</RelativeLayout>

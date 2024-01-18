@@ -1,12 +1,15 @@
 package com.lechixy.lechwidgets.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -30,12 +34,12 @@ import androidx.compose.ui.unit.dp
 import com.lechixy.lechwidgets.ui.theme.preferenceTitle
 
 private const val horizontal = 8
-private const val vertical = 16
+private const val vertical = 12
 
 @Composable
 fun PreferenceItemGroup(
     content: @Composable (() -> Unit),
-){
+) {
     Surface(
         shape = RoundedCornerShape(30.dp)
     ) {
@@ -75,7 +79,14 @@ fun PreferenceItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal.dp, vertical.dp),
+                .padding(horizontal.dp, vertical.dp)
+                .alpha(
+                    if (enabled) {
+                        1f
+                    } else {
+                        0.25f
+                    }
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             leadingIcon?.invoke()
@@ -125,7 +136,7 @@ fun PreferenceItem(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(10.dp)
                 ) {
-                    if (trailingIconDivider){
+                    if (trailingIconDivider) {
                         Divider(
                             modifier = Modifier
                                 .height(36.dp)

@@ -79,32 +79,16 @@ class LechGlance : AppWidgetProvider() {
         // Preferences
         Kotpref.init(context)
 
-        val event = GlanceUtil.getTodaysFirstEvent(context)
-
-        if (event != null) {
-            views.setViewVisibility(R.id.eventIcon, View.VISIBLE)
-            var coloredDrawable =
-                ContextCompat.getDrawable(context, R.drawable.m3_celebration)
-            coloredDrawable = DrawableCompat.wrap(coloredDrawable!!)
-            DrawableCompat.setTint(coloredDrawable, event.eventColor)
-            val bitmap = coloredDrawable.toBitmap()
-
-            views.setImageViewBitmap(R.id.eventIcon, bitmap)
-            views.setTextViewText(R.id.todaysEvent, event.title)
-        } else {
-            views.setViewVisibility(R.id.eventIcon, View.GONE)
-            views.setTextViewText(R.id.todaysEvent, context.getString(R.string.glance_noEvent))
-        }
-
-
         val wallpaperManager = WallpaperManager.getInstance(context)
         val wallpaperColors = wallpaperManager.getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
+        var currentTheme =  GlanceUtil.ThemeColors.LIGHT
 
-        // TODO ADDING SHADOW SUPPORT
-        // TODO ADDING WALLPAPER COLOR SUPPORT
-        if (wallpaperColors != null) {
-            val isWallpaperSupportsLight = GlanceUtil.isWallpaperSupportsLight(wallpaperColors.colorHints)
-            val preferColor = GlanceUtil.getPreferColor(isWallpaperSupportsLight)
+        if(Preferences.glanceTheme != GlanceUtil.GlanceThemeColors.AUTO){
+            var preferColor = GlanceUtil.ThemeColors.LIGHT
+            if(Preferences.glanceTheme == GlanceUtil.GlanceThemeColors.DARK){
+                preferColor = GlanceUtil.ThemeColors.DARK
+            }
+            currentTheme = preferColor
 
             GlanceUtil.getAllTextsOnWidget().forEach {
                 if(it.textType == GlanceUtil.GlanceTextType.TITLE){
@@ -123,6 +107,59 @@ class LechGlance : AppWidgetProvider() {
 
                 views.setImageViewBitmap(it.idAtGlance, bitmap)
             }
+        } else {
+            // TODO ADDING BACKGROUND COLOR SUPPORT
+            // TODO ADDING WALLPAPER COLOR SUPPORT
+            if (wallpaperColors != null) {
+                val isWallpaperSupportsLight = GlanceUtil.isWallpaperSupportsLight(wallpaperColors.colorHints)
+                val preferColor = GlanceUtil.getPreferColor(isWallpaperSupportsLight)
+                currentTheme = preferColor
+
+                GlanceUtil.getAllTextsOnWidget().forEach {
+                    if(it.textType == GlanceUtil.GlanceTextType.TITLE){
+                        views.setTextColor(it.idAtGlance, preferColor.titleColor)
+                    } else {
+                        views.setTextColor(it.idAtGlance, preferColor.subtitleColor)
+                    }
+                }
+
+                GlanceUtil.getAllIconsOnWidget().forEach {
+                    var coloredDrawable =
+                        ContextCompat.getDrawable(context, it.iconResource) as Drawable
+                    coloredDrawable = DrawableCompat.wrap(coloredDrawable)
+                    DrawableCompat.setTint(coloredDrawable, preferColor.titleColor)
+                    val bitmap = coloredDrawable.toBitmap()
+
+                    views.setImageViewBitmap(it.idAtGlance, bitmap)
+                }
+            }
+        }
+
+        val event = GlanceUtil.getTodaysFirstEvent(context)
+
+        if (event != null) {
+            views.setViewVisibility(R.id.eventIcon, View.VISIBLE)
+            var coloredDrawable =
+                ContextCompat.getDrawable(context, R.drawable.m3_celebration) as Drawable
+            coloredDrawable = DrawableCompat.wrap(coloredDrawable)
+
+            val color = if(event.eventColor == 0){
+                Color.WHITE
+            } else event.eventColor
+
+            DrawableCompat.setTint(coloredDrawable, color)
+            val bitmap = coloredDrawable.toBitmap()
+
+            views.setImageViewBitmap(R.id.eventIcon, bitmap)
+            if(Preferences.colorfulEventName){
+                views.setTextColor(R.id.todaysEvent, color)
+            } else {
+                views.setTextColor(R.id.todaysEvent, currentTheme.titleColor)
+            }
+            views.setTextViewText(R.id.todaysEvent, event.title)
+        } else {
+            views.setViewVisibility(R.id.eventIcon, View.GONE)
+            views.setTextViewText(R.id.todaysEvent, context.getString(R.string.glance_noEvent))
         }
 
 //        if(Preferences.textShadows){
@@ -140,6 +177,12 @@ class LechGlance : AppWidgetProvider() {
         val extras = intent.extras ?: return
 
         if (intent.action.equals(GlanceUtil.Events.UPDATE_MUSIC)) {
+            if(Preferences.isMusicEnabled.not()){
+                views.setViewVisibility(R.id.musicContainer, View.GONE)
+                appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
+                return
+            }
+
             val session = extras.getParcelable(
                 NotificationCompat.EXTRA_MEDIA_SESSION,
                 MediaSession.Token::class.java
@@ -205,6 +248,12 @@ class LechGlance : AppWidgetProvider() {
 
         }
         if (intent.action.equals(GlanceUtil.Events.NEW_NOTIFICATION)) {
+            if(Preferences.isNotificationsEnabled.not()){
+                views.setViewVisibility(R.id.notificationContainer, View.GONE)
+                appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
+                return
+            }
+
             val title = extras.getString(NotificationCompat.EXTRA_TITLE)
             val app = extras.getString("app")
 
@@ -282,6 +331,12 @@ class LechGlance : AppWidgetProvider() {
 
         }
         if (intent.action.equals(GlanceUtil.Events.REMOVE_NOTIFICATION)) {
+            if(Preferences.isNotificationsEnabled.not()){
+                views.setViewVisibility(R.id.notificationContainer, View.GONE)
+                appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
+                return
+            }
+
             //val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE).toString()
             val key = extras.getCharSequence("key").toString()
 
@@ -296,47 +351,57 @@ class LechGlance : AppWidgetProvider() {
 
         }
         if (intent.action.equals(GlanceUtil.Events.UPDATE_BATTERY)) {
+            if(Preferences.isBatteryEnabled.not()){
+                views.setViewVisibility(R.id.batteryContainer, View.GONE)
+                appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
+                return
+            }
+
             val isPlugged = extras.getBoolean("isPlugged")
             val fullyCharged = extras.getBoolean("fullyCharged")
             val batteryPercentage = extras.getFloat("batteryPercentage")
 
-            var haveChange = false
-
             if (fullyCharged && isPlugged) {
-                haveChange = true
                 views.setTextViewText(R.id.battery, "Fully charged")
+                views.setTextColor(R.id.battery, GlanceUtil.Colors.BATTERY_FULL)
+
                 var coloredDrawable =
                     ContextCompat.getDrawable(context, R.drawable.batteryfull)  as Drawable
                 coloredDrawable = DrawableCompat.wrap(coloredDrawable)
-                DrawableCompat.setTint(coloredDrawable, Color.rgb(0, 255, 128))
+                DrawableCompat.setTint(coloredDrawable, GlanceUtil.Colors.BATTERY_FULL)
+                val bitmap = coloredDrawable.toBitmap()
+                views.setImageViewBitmap(R.id.batteryIcon, bitmap)
+            } else if (isPlugged) {
+
+                views.setTextColor(R.id.battery, currentTheme.titleColor)
+                views.setTextViewText(R.id.battery, "Charging ${batteryPercentage.toInt()}%")
+                val chargingIcon = GlanceUtil.getBatteryIcon(batteryPercentage.toInt())
+                var coloredDrawable =
+                    ContextCompat.getDrawable(context, chargingIcon) as Drawable
+                coloredDrawable = DrawableCompat.wrap(coloredDrawable)
+                DrawableCompat.setTint(coloredDrawable, currentTheme.titleColor)
                 val bitmap = coloredDrawable.toBitmap()
 
                 views.setImageViewBitmap(R.id.batteryIcon, bitmap)
-            } else if (isPlugged) {
-                haveChange = true
-                views.setTextViewText(R.id.battery, "Charging ${batteryPercentage.toInt()}%")
-                val chargingIcon = GlanceUtil.getBatteryIcon(batteryPercentage.toInt())
-                views.setImageViewResource(R.id.batteryIcon, chargingIcon)
             } else if (batteryPercentage.toInt() <= 20) {
-                haveChange = true
                 views.setTextViewText(R.id.battery, "Charge your phone")
+                views.setTextColor(R.id.battery, GlanceUtil.Colors.BATTERY_LOW)
 
                 var coloredDrawable =
-                    ContextCompat.getDrawable(context, R.drawable.batterylow)  as Drawable
+                    ContextCompat.getDrawable(context, R.drawable.batterylow) as Drawable
                 coloredDrawable = DrawableCompat.wrap(coloredDrawable)
-                DrawableCompat.setTint(coloredDrawable, Color.rgb(229, 62, 53))
+                DrawableCompat.setTint(coloredDrawable, GlanceUtil.Colors.BATTERY_LOW)
                 val bitmap = coloredDrawable.toBitmap()
 
                 views.setImageViewBitmap(R.id.batteryIcon, bitmap)
             } else {
                 views.setViewVisibility(R.id.batteryContainer, View.GONE)
                 appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
+                return
             }
 
-            if (haveChange) {
-                views.setViewVisibility(R.id.batteryContainer, View.VISIBLE)
-                appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
-            }
+            views.setViewVisibility(R.id.batteryContainer, View.VISIBLE)
+            appWidgetManager.partiallyUpdateAppWidget(appWidgetIds, views)
         }
     }
 
@@ -556,7 +621,7 @@ class LechGlance : AppWidgetProvider() {
                 views.setTextViewText(R.id.weatherDescription, weather.weatherDescription)
 
                 val rawTemp = jsonObject.get("main").asJsonObject.get("temp").asFloat
-                val showFormat = DecimalFormat("#.0")
+                val showFormat = DecimalFormat("0.0")
                 val temp = showFormat.format(rawTemp)
                 views.setTextViewText(R.id.weatherTemp, "$temp°C")
 

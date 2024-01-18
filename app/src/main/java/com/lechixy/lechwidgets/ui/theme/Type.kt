@@ -37,6 +37,6 @@ val Typography = Typography(
 val preferenceTitle = TextStyle(
     fontFamily = FontFamily.Default,
     fontWeight = FontWeight.Normal,
-    fontSize = 18.sp, lineHeight = 22.sp,
+    fontSize = 16.sp, lineHeight = 20.sp,
     lineBreak = LineBreak.Paragraph,
 )
